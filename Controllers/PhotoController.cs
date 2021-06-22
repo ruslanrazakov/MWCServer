@@ -15,21 +15,12 @@ namespace MWCServer.Controllers
     [ApiController]
     public class PhotoController : ControllerBase
     {
-        private readonly ApplicationContext _context;
         private readonly PhotosExchange _photosService;
 
         public PhotoController(ApplicationContext context, PhotosExchange photosService)
         {
-            _context = context;
             _photosService = photosService;
         }
-
-        /*// GET: api/Photo
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<Photo>>> GetPhotos()
-        {
-            return await _context.Photos.ToListAsync();
-        }*/
 
         // GET: api/Photo
         [HttpGet]
@@ -55,27 +46,6 @@ namespace MWCServer.Controllers
             bool successCreated = await _photosService.PostToStorage(photo);
             return successCreated ? CreatedAtAction(nameof(GetPhoto), new { id = photo.Id }, photo.Path) :
                                     BadRequest();
-        }
-
-        // DELETE: api/Photo/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeletePhoto(long id)
-        {
-            var photo = await _context.Photos.FindAsync(id);
-            if (photo == null)
-            {
-                return NotFound();
-            }
-
-            _context.Photos.Remove(photo);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
-        }
-
-        private bool PhotoExists(long id)
-        {
-            return _context.Photos.Any(e => e.Id == id);
         }
     }
 }
