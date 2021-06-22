@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using Data.MWCServer;
 using Microsoft.AspNetCore.Hosting;
@@ -21,13 +22,24 @@ namespace MWCServer.Services
             _env = env;
         }
 
-        public async Task PostToStorage(Photo photo)
+        public async Task<bool> PostToStorage(Photo photo)
         {
-            photo.Name = Get8CharacterRandomPhotoName();
-            photo.Path = "https://blah-blah/" + photo.Name;
+            string photoName = Get8CharacterRandomPhotoName();
+            while(_context.Photos.Any(p=>p.Name == photo.Name))
+                photo.Name = Get8CharacterRandomPhotoName();
+            photo.Name = photoName;
+
+            photo.Path = "http://mwc-server.eastus.cloudapp.azure.com/" + photo.Name;
             _context.Photos.Add(photo);
-            SavePhotoFromBytesArray(photo);
-            await _context.SaveChangesAsync();
+
+            if(SavePhotoFromBytesArray(photo))
+            {
+                await _context.SaveChangesAsync();
+                _logger.Log(LogLevel.Information, $"{photo.Name} сохранена по адресу {photo.Path}");
+                return true;
+            }
+            else
+                return false;
         }
 
 		public string Get8CharacterRandomPhotoName()
@@ -49,13 +61,22 @@ namespace MWCServer.Services
             return photo.Path;
         }
 
-        private void SavePhotoFromBytesArray(Photo photo)
+        private bool SavePhotoFromBytesArray(Photo photo)
         {
-            var iiiiiiiiii = _env.WebRootPath + "/photos/" + photo.Name;
-            using(var ms = new MemoryStream(Convert.FromBase64String(photo.Content))) {
-                using(var fs = new FileStream(_env.WebRootPath + "/" + photo.Name, FileMode.Create)) {
-                    ms.WriteTo(fs);
+            try
+            {
+                using(var ms = new MemoryStream(Convert.FromBase64String(photo.Content))) {
+                    using(var fs = new FileStream(_env.WebRootPath + "/" + photo.Name, FileMode.Create)) {
+                        ms.WriteTo(fs);
+                    }
                 }
+                return true;
+            }
+            catch
+            {
+                _logger.Log(LogLevel.Critical, "Строка в секции Content неверного формата! Сохранение прервано");
+                _logger.Log(LogLevel.Critical, $"{photo.Content}");
+                return false;
             }
         }
     }

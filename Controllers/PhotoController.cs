@@ -52,9 +52,9 @@ namespace MWCServer.Controllers
         public async Task<ActionResult<Photo>> PostPhoto(Photo photo)
         {
             
-            await _photosService.PostToStorage(photo);
-
-            return CreatedAtAction(nameof(GetPhoto), new { id = photo.Id }, photo.Path);
+            bool successCreated = await _photosService.PostToStorage(photo);
+            return successCreated ? CreatedAtAction(nameof(GetPhoto), new { id = photo.Id }, photo.Path) :
+                                    BadRequest();
         }
 
         // DELETE: api/Photo/5
